@@ -25,12 +25,26 @@ for arquivo_pdf in arquivos_pdf:
         colunas_com_valor = primeira_tabela.columns.str.contains("Receita Bruta Informada")
 
         # Verifique se alguma coluna contém a string
-        if colunas_com_valor.any(): #Esta linha verifica se a variável colunas_com_valor contém pelo menos um valor verdadeiro. 'colunas_com_valor' é uma série booleana que indica para cada coluna se o nome da coluna contém a string "Receita Bruta Informada" (ou seja, é verdadeiro se a string está presente na coluna). O método any() verifica se pelo menos um valor na série é verdadeiro.
-            coluna = primeira_tabela.columns[colunas_com_valor][0] #Se houver pelo menos uma coluna que contenha a string "Receita Bruta Informada", esta linha obtém o nome da primeira coluna que satisfaça essa condição
-            valor = primeira_tabela.loc[3, coluna] # Após encontrar a coluna desejada, esta linha obtém o valor na primeira linha (linha 0) dessa coluna. '0' é o número da linha e coluna é o nome da coluna que foi encontrado anteriormente.
-            #print(f"Valor: {valor}, Coluna: {coluna}")
-            
-            print(f"Valor: {valor}")
+        if colunas_com_valor.any():
+            coluna = primeira_tabela.columns[colunas_com_valor][0]
+            valor = primeira_tabela.loc[3, coluna]
+
+            # Aplicar a expressão regular para extrair valores numéricos ou de moeda
+            padrao_numerico = r'(?<!Parcela\s)(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))(?!\d)'
+            correspondencias = re.findall(padrao_numerico, valor)
+
+            if correspondencias:
+                # Concatenar todas as correspondências para formar o valor final
+                valor = ''.join(correspondencias)
+                # Remover pontos (.) de milhares
+                valor = valor.replace('.', '')
+                # Substituir vírgulas (,) por pontos (.) como separadores decimais
+                valor = valor.replace(',', '.')
+                # Converter para ponto flutuante
+                valor = float(valor)
+                print(f"Valor numérico: {valor}")
+            else:
+                print("Nenhum valor numérico encontrado.")
         else:
             print("A coluna 'Receita Bruta Informada' não existe na tabela.")
     else:
