@@ -31,8 +31,9 @@ for arquivo_pdf in arquivos_pdf:
             if colunas_com_valor.any():
                 coluna = tabela.columns[colunas_com_valor][0]
 
-                # Valores da coluna correspondente à "Receita Bruta Informada"
-                valores = tabela[coluna].dropna()
+                condicao = tabela[coluna].str.contains("Parcela", case=False, na=False)
+                valores = tabela[coluna][condicao]
+
 
                 for valor in valores:
                     # Verificar se o valor é uma string antes de aplicar a expressão regular
