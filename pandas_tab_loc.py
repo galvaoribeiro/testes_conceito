@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from tabula.io import read_pdf
 import re
-import numpy as np
+from PyPDF2 import PdfReader
 
 # Diretório contendo os arquivos PDF
 diretorio_pdf = r'C:\Users\ronal\OneDrive\Auto-GPT\Auto-GPT-0.4.7\auto_gpt_workspace\recupera'
@@ -17,13 +17,28 @@ padrao_numerico = r'(?<!Parcela\s)(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))(?!\d)'
 def verifica_linha(linha):
     return "Tributação monofásica de: COFINS, PIS" in linha
 
-
 # Função para verificar se uma célula contém a expressão desejada
 def verifica_celula(celula, coluna):
-    if isinstance(celula, str) and "Receita Bruta Informada" in celula:
+    if isinstance(celula, str) and "Revenda de mercadorias, exceto para o exterior" in celula:
         return coluna
     return None
 
+# Expressão regular para procurar a string
+expressao = "CNPJ Estabelecimento:"
+
+# Função para verificar se a expressão está presente em uma tabela
+def verifica_tabela(tabela):
+    for coluna in tabela.columns:
+        for valor in tabela[coluna]:
+            if isinstance(valor, str) and expressao in valor:
+                return True
+    return False
+
+# Inicialize a variável para armazenar a soma
+soma_valores = 0
+
+# Inicialize a variável para contar a quantidade de expressões encontradas
+quantidade_expressoes = 0
 
 # Loop através dos arquivos PDF e consultar os dados
 for arquivo_pdf in arquivos_pdf:
@@ -34,13 +49,20 @@ for arquivo_pdf in arquivos_pdf:
 
     # Verifique se há pelo menos uma tabela extraída
     if tabelas:
+        encontrou = False
         for idx, tabela in enumerate(tabelas):
             print(f"Tabela {idx + 1}:")
-            
-            # Verifique se alguma coluna contém a string "Receita Bruta Informada"
-            colunas_com_valor = tabela.columns.str.contains("Receita Bruta Informada") | tabela.applymap(lambda celula: verifica_celula(celula, tabela.columns.any())).any().to_numpy()
 
-            colunas_com_valor_celula = tabela.applymap(lambda celula: verifica_celula(celula, tabela.columns.any())).any().to_numpy()
+             # Verifique se a expressão está presente na tabela atual
+            if tabela.columns.str.contains(expressao).any():
+                encontrou = True
+                print(f"A expressão '{expressao}' foi encontrada na Tabela {idx + 1} do arquivo.")
+                quantidade_expressoes += 1  # Incrementar a contagem de expressões encontradas
+
+            # Verifique se alguma coluna contém a string "Revenda de mercadorias, exceto para o exterior"
+            colunas_com_valor = tabela.columns.str.contains("Revenda de mercadorias, exceto para o exterior") | tabela.applymap(lambda celula: verifica_celula(celula, tabela.columns.any())).any().to_numpy()
+
+            #colunas_com_valor_celula = tabela.applymap(lambda celula: verifica_celula(celula, tabela.columns.any())).any().to_numpy()
             
             # Verifique se alguma coluna contém a string
             if colunas_com_valor.any():
@@ -48,7 +70,6 @@ for arquivo_pdf in arquivos_pdf:
 
                 # Inicialize a variável para rastrear o estado
                 estado = None
-                valores = []  # Inicialize uma lista para armazenar os valores
 
                 for valor in tabela[coluna]:
                     if isinstance(valor, str):
@@ -66,11 +87,18 @@ for arquivo_pdf in arquivos_pdf:
                                 # Converter para ponto flutuante
                                 valor = float(valor)
                                 print(f"Valor numérico: {valor}")
+                                # Adicionar o valor à soma
+                                soma_valores += valor
                         elif "Parcela" in valor:
                             estado = "ativo"  # Ativar o estado quando "Parcela" é encontrado
+                    
                     else:
-                        print("O valor não é uma string.")
+                        print("Apesar de estar na coluna correta, o valor selecionado não é uma string.")
             else:
-                print("A coluna 'Receita Bruta Informada' não existe na tabela.")
+                print(f"A coluna 'Revenda de mercadorias, exceto para o exterior' não existe na tabela {idx + 1}.")
     else:
         print("Nenhuma tabela encontrada neste arquivo.")
+
+# Imprima a soma dos valores e a quantidade de expressões encontradas ao final do loop
+print(f"Soma dos Valores Numéricos: {soma_valores}")
+print(f"Quantidade de CNPJ Encontradas: {quantidade_expressoes}")
