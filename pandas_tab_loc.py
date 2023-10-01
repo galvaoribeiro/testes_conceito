@@ -12,6 +12,12 @@ diretorio_pdf = r'C:\Users\ronal\OneDrive\Auto-GPT\Auto-GPT-0.4.7\auto_gpt_works
 # Lista de arquivos PDF no diretório
 arquivos_pdf = [os.path.join(diretorio_pdf, arquivo) for arquivo in os.listdir(diretorio_pdf) if arquivo.endswith('.pdf')]
 
+# Listas para armazenar os valores de cada iteração
+lista_pgdas = []
+lista_cnpj_raiz = []
+lista_data = []
+lista_soma_valores = []
+lista_quantidade_expressoes = []
 
 # Expressão regular para extrair valores numéricos ou de moeda
 padrao_numerico = r'(?<!Parcela\s)(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))(?!\d)'
@@ -41,6 +47,10 @@ quantidade_expressoes = 0
 for arquivo_pdf in arquivos_pdf:
     print(f"Consultando dados de {arquivo_pdf}:")
 
+    # Reinicialize as variáveis para cada iteração
+    soma_valores = 0
+    quantidade_expressoes = 0
+
     # Use a função read_pdf para ler o PDF e extrair tabelas (pode haver várias)
     tabelas = read_pdf(arquivo_pdf, pages='all')
 
@@ -62,7 +72,7 @@ for arquivo_pdf in arquivos_pdf:
     if data_match:
         data = data_match.group(1)
         referencia = datetime.strptime(data, "%m/%Y").date()
-        data_formatada = referencia.strftime("%Y%m")
+        #data_formatada = referencia.strftime("%Y%m")
         #print(data_formatada)
     
     if cnpj_match:
@@ -121,18 +131,36 @@ for arquivo_pdf in arquivos_pdf:
                                 soma_valores += valor
                         elif "Parcela" in valor:
                             estado = "ativo"  # Ativar o estado quando "Parcela" é encontrado
-'''                    
+    '''                    
                     else:
                         print("Apesar de estar na coluna correta, o valor selecionado não é uma string.")
             else:
                 print(f"A coluna 'Revenda de mercadorias, exceto para o exterior' não existe na tabela {idx + 1}.")
     else:
         print("Nenhuma tabela encontrada neste arquivo.")
+    '''
+
+ # Armazenar os valores nas listas
+    lista_pgdas.append(pgdas)
+    lista_cnpj_raiz.append(cnpj_raiz)
+    lista_data.append(data)
+    lista_soma_valores.append(soma_valores)
+    lista_quantidade_expressoes.append(quantidade_expressoes)
+
+    comb = zip(lista_data, lista_pgdas, lista_cnpj_raiz,  lista_soma_valores, lista_quantidade_expressoes)
+    #list1 = list(c)
+    df = pd.DataFrame(comb, columns= ['ref', 'pgdas', 'cnpj','mono_pgdas','Qtde CNPJ'])
+
+'''
+# Imprima os valores armazenados nas listas após o loop
+for i in range(len(arquivos_pdf)):
+    print(f"PGDAS nº {lista_pgdas[i]}")
+    print(f"CNPJ Básico: {lista_cnpj_raiz[i]}")
+    print(f"Data de Referência: {lista_data[i]}")
+    print(f"Soma dos Valores Monofásicos informados: {lista_soma_valores[i]}")
+    print(f"Quantidade de CNPJ Encontradas: {lista_quantidade_expressoes[i]}")
+    print("-" * 50)  # Separador entre resultados de arquivos diferentes
 '''
 
-# Imprima a soma dos valores e a quantidade de expressões encontradas ao final do loop
-print(f"PGDAS nº {pgdas}")
-print(f"CNPJ Básico: {cnpj_raiz}")
-print(f"data de referencia: {data}")
-print(f"Soma dos Valores Monofasicos informados: {soma_valores}")
-print(f"Quantidade de CNPJ Encontradas: {quantidade_expressoes}")
+print(df)    
+print(df.iloc[0,3])
